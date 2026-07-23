@@ -1,4 +1,4 @@
-require("dotenv").config({ path: "./server/.env" });
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
@@ -11,7 +11,9 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 app.use("/api/interview", interviewRoutes);
 
-const PORT = 5000;
+/* ✅ IMPORTANT FIX FOR RENDER */
+const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
