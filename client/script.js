@@ -93,7 +93,7 @@ for a ${level} candidate.
 Return JSON array only.
 `;
 
-    const response=await fetch("http://localhost:5000/api/interview/generate",{
+    const response=await fetch("https://ai-interview-app-h4yt.onrender.com/api/interview/generate",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({answers:prompt})
