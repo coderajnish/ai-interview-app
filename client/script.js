@@ -65,60 +65,82 @@ async function generateQuestions(){
 
     /* ================= REALISTIC ATS SCORING ================= */
 
-    if(resumeUploaded){
+if(resumeUploaded){
 
-      const resumeLower = resumeText.toLowerCase();
+  const resumeLower = resumeText.toLowerCase();
+  const selectedRole = document.getElementById("role").value;
 
-      const roleSkills = {
-        "Frontend Developer": ["html","css","javascript","react","ui","frontend"],
-        "Backend Developer": ["node","express","api","database","sql","mongodb"],
-        "Full Stack Developer": ["react","node","api","database","javascript"],
-        "Data Scientist": ["python","machine learning","pandas","data","model"],
-        "Machine Learning Engineer": ["python","tensorflow","model","data","ml"],
-        "DevOps Engineer": ["docker","kubernetes","aws","ci","cd"],
-        "Cloud Engineer": ["aws","cloud","azure","deployment","server"],
-        "Software Engineer": ["programming","api","database","algorithm","git"]
-      };
-
-      const expectedSkills = roleSkills[role] || [];
-
-      let matchCount = 0;
-
-      expectedSkills.forEach(skill=>{
-        if(resumeLower.includes(skill)){
-          matchCount++;
-        }
-      });
-
-      if(matchCount===0){
-        atsScore=2;
-      }
-      else if(matchCount<=2){
-        atsScore=4;
-      }
-      else if(matchCount<=4){
-        atsScore=6;
-      }
-      else{
-        atsScore=8 + Math.min(2,Math.floor(matchCount/2));
-      }
-
-      atsScore=Math.min(10,atsScore);
-
-      if(atsScore<=3){
-        atsSummary="Resume does not align well with the selected technical role.";
-        roleImprovement="Add relevant technical skills and real software projects.";
-      }
-      else if(atsScore<=6){
-        atsSummary="Resume shows partial alignment but lacks strong technical depth.";
-        roleImprovement="Add measurable achievements and deeper technical contributions.";
-      }
-      else{
-        atsSummary="Resume strongly aligns with the selected technical role.";
-        roleImprovement="Improve formatting and quantify impact to strengthen profile.";
-      }
+  const skillWeights = {
+    "Frontend Developer": {
+      core: ["html","css","javascript","react"],
+      secondary: ["api","git","ui","frontend"]
+    },
+    "Backend Developer": {
+      core: ["node","express","api","database"],
+      secondary: ["sql","mongodb","auth","server"]
+    },
+    "Full Stack Developer": {
+      core: ["react","node","api","database"],
+      secondary: ["javascript","git","deployment"]
+    },
+    "Software Engineer": {
+      core: ["programming","api","database","algorithm"],
+      secondary: ["git","data structures","rest"]
     }
+  };
 
+  const roleData = skillWeights[selectedRole] || {
+    core: ["programming"],
+    secondary: []
+  };
+
+  let score = 0;
+  let missingSkills = [];
+
+  roleData.core.forEach(skill=>{
+    if(resumeLower.includes(skill)){
+      score += 2;
+    } else {
+      missingSkills.push(skill);
+    }
+  });
+
+  roleData.secondary.forEach(skill=>{
+    if(resumeLower.includes(skill)){
+      score += 1;
+    }
+  });
+
+  // Bonus for projects
+  if(resumeLower.includes("project")){
+    score += 2;
+  }
+
+  // Bonus for certifications
+  if(resumeLower.includes("certification")){
+    score += 1;
+  }
+
+  // Bonus for DSA
+  if(resumeLower.includes("data structures") || resumeLower.includes("algorithm")){
+    score += 2;
+  }
+
+  atsScore = Math.min(10, score);
+
+  if(atsScore <= 3){
+    atsSummary = "Resume lacks core technical alignment for the selected role.";
+    roleImprovement = `Add core skills like: ${missingSkills.join(", ")}`;
+  }
+  else if(atsScore <= 6){
+    atsSummary = "Resume shows moderate alignment but needs stronger technical depth.";
+    roleImprovement = `Strengthen experience in: ${missingSkills.join(", ")}`;
+  }
+  else{
+    atsSummary = "Resume strongly aligns with the selected technical role.";
+    roleImprovement = "Improve formatting and quantify achievements.";
+  }
+}
     /* ================= HUMAN QUESTIONS ================= */
 
     const prompt=`
