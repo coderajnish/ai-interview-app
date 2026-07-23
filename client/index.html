@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Interview Intelligence</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="particles-js"></div>
+
+<section id="landing" class="screen active">
+  <div class="center">
+    <h1>AI Interview Intelligence</h1>
+    <p>Professional AI Interview Experience</p>
+    <button onclick="goToSetup()">Start Interview</button>
+  </div>
+</section>
+
+<section id="setup" class="screen">
+  <div class="card glass">
+    <h2>Interview Setup</h2>
+
+    <div class="form-row">
+      <select id="role"></select>
+      <select id="level">
+        <option>Fresher</option>
+        <option>2+ Years</option>
+        <option>5+ Years</option>
+      </select>
+    </div>
+
+    <div class="resume-row">
+      <label>Upload Resume (Required for ATS Score)</label>
+      <input type="file" id="resumeUpload" accept=".txt,.pdf">
+    </div>
+
+    <button onclick="generateQuestions()">Generate Interview</button>
+    <div id="loadingSetup" class="loader hidden"></div>
+  </div>
+</section>
+
+<section id="interview" class="screen">
+  <div class="card glass">
+    <div id="questionBox" class="question-text"></div>
+    <textarea id="answerInput" class="answer-box"></textarea>
+    <button onclick="nextQuestion()">Next</button>
+  </div>
+</section>
+
+<section id="dashboard" class="screen">
+  <div class="dashboard-container">
+    <h2>Interview Performance Report</h2>
+    <div id="scoreCards"></div>
+    <div id="feedbackSection"></div>
+    <canvas id="scoreChart"></canvas>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
