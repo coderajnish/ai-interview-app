@@ -63,70 +63,68 @@ async function generateQuestions(){
       resumeText=(await file.text()).slice(0,1500);
     }
 
-    /* ✅ STRICT ATS ANALYSIS */
+    /* ================= REALISTIC ATS SCORING ================= */
+
     if(resumeUploaded){
 
-      const atsPrompt=`
-You are an advanced ATS system.
+      const resumeLower = resumeText.toLowerCase();
 
-Strictly analyze this resume.
+      const roleSkills = {
+        "Frontend Developer": ["html","css","javascript","react","ui","frontend"],
+        "Backend Developer": ["node","express","api","database","sql","mongodb"],
+        "Full Stack Developer": ["react","node","api","database","javascript"],
+        "Data Scientist": ["python","machine learning","pandas","data","model"],
+        "Machine Learning Engineer": ["python","tensorflow","model","data","ml"],
+        "DevOps Engineer": ["docker","kubernetes","aws","ci","cd"],
+        "Cloud Engineer": ["aws","cloud","azure","deployment","server"],
+        "Software Engineer": ["programming","api","database","algorithm","git"]
+      };
 
-Evaluate:
-1. Resume structure (Education, Skills, Experience, Projects)
-2. Technical depth
-3. Quality of achievements
-4. Relevance to role: ${role}
+      const expectedSkills = roleSkills[role] || [];
 
-Return STRICT JSON:
+      let matchCount = 0;
 
-{
-  "overall_score": number,
-  "role_score": number,
-  "strengths": "1-2 lines",
-  "weaknesses": "1-2 lines",
-  "improvement": "Specific improvement advice for ${role}"
-}
-
-Resume:
-${resumeText}
-`;
-
-      const res=await fetch("https://ai-interview-app-h4yt.onrender.com/api/interview/generate",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({answers:atsPrompt})
+      expectedSkills.forEach(skill=>{
+        if(resumeLower.includes(skill)){
+          matchCount++;
+        }
       });
 
-      const data=await res.json();
-      const parsed=safeParse(data.result);
-
-      if(parsed){
-        const overall=parsed.overall_score||5;
-        const roleMatch=parsed.role_score||5;
-
-        atsScore=Math.round((overall+roleMatch)/2);
-
-        atsSummary=`
-Strengths: ${parsed.strengths || ""}
-Weaknesses: ${parsed.weaknesses || ""}
-`;
-
-        roleImprovement=parsed.improvement || "";
-      } else {
+      if(matchCount===0){
+        atsScore=2;
+      }
+      else if(matchCount<=2){
         atsScore=4;
-        atsSummary="ATS parsing failed.";
-        roleImprovement="Unable to evaluate resume properly.";
+      }
+      else if(matchCount<=4){
+        atsScore=6;
+      }
+      else{
+        atsScore=8 + Math.min(2,Math.floor(matchCount/2));
+      }
+
+      atsScore=Math.min(10,atsScore);
+
+      if(atsScore<=3){
+        atsSummary="Resume does not align well with the selected technical role.";
+        roleImprovement="Add relevant technical skills and real software projects.";
+      }
+      else if(atsScore<=6){
+        atsSummary="Resume shows partial alignment but lacks strong technical depth.";
+        roleImprovement="Add measurable achievements and deeper technical contributions.";
+      }
+      else{
+        atsSummary="Resume strongly aligns with the selected technical role.";
+        roleImprovement="Improve formatting and quantify impact to strengthen profile.";
       }
     }
 
-    /* ✅ HUMAN QUESTIONS */
+    /* ================= HUMAN QUESTIONS ================= */
 
     const prompt=`
 You are a strict senior ${role} interviewer.
-
-Ask 5 realistic, conversational interview questions
+Ask 5 realistic conversational interview questions
 for a ${level} candidate.
-
 Return JSON array only.
 `;
 
@@ -167,7 +165,7 @@ function loadQuestion(){
   `Question ${currentIndex+1}: ${questions[currentIndex]}`;
 }
 
-/* ================= STRICT INTERVIEW EVALUATION ================= */
+/* ================= STRICT INTERVIEW SCORING ================= */
 
 async function nextQuestion(){
 
@@ -187,8 +185,6 @@ async function nextQuestion(){
 
 async function evaluateInterview(){
 
-  const role=document.getElementById("role").value;
-
   const interviewSection=document.getElementById("interview");
   interviewSection.innerHTML=`
     <div class="card glass">
@@ -197,59 +193,44 @@ async function evaluateInterview(){
     </div>
   `;
 
-  const combined=answers.join("\n");
+  let totalTechnical=0;
+  let totalCommunication=0;
 
-  const strictPrompt=`
-You are a VERY STRICT ${role} interviewer.
+  for(let i=0;i<answers.length;i++){
 
-Score harshly.
+    const answer=answers[i].toLowerCase();
+    const wordCount=answer.split(/\s+/).length;
 
-Scoring Rules:
-- 1–3 = Very weak / vague / short
-- 4–6 = Basic understanding
-- 7–8 = Strong depth
-- 9–10 = Expert level only if detailed technical explanation
+    let technical=5;
+    let communication=5;
 
-If answers are short or shallow, reduce score.
+    if(answer==="no"||answer==="yes"){
+      technical=1;
+      communication=1;
+    }
+    else if(wordCount<10){
+      technical=1;
+      communication=2;
+    }
+    else if(wordCount<25){
+      technical=3;
+      communication=4;
+    }
+    else{
+      technical=7;
+      communication=6;
+    }
 
-Return JSON:
-
-{
- "technical": number,
- "communication": number,
- "overall_feedback": "Honest overall summary",
- "role_feedback": "How candidate performed for ${role}"
-}
-
-Answers:
-${combined}
-`;
-
-  const res=await fetch("https://ai-interview-app-h4yt.onrender.com/api/interview/generate",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({answers:strictPrompt})
-  });
-
-  const data=await res.json();
-  const parsed=safeParse(data.result);
-
-  let technical=parsed?.technical||5;
-  let communication=parsed?.communication||5;
-
-  /* ✅ HARD PENALTY FOR SHORT ANSWERS */
-  const totalWords=combined.split(/\s+/).length;
-
-  if(totalWords<30){
-    technical=Math.max(2,technical-3);
-    communication=Math.max(2,communication-2);
+    totalTechnical+=technical;
+    totalCommunication+=communication;
   }
 
+  const avgTechnical=Math.round(totalTechnical/answers.length);
+  const avgCommunication=Math.round(totalCommunication/answers.length);
+
   showDashboard({
-    technical,
-    communication,
-    overall_feedback: parsed?.overall_feedback || "",
-    role_feedback: parsed?.role_feedback || ""
+    technical:avgTechnical,
+    communication:avgCommunication
   });
 }
 
@@ -288,13 +269,8 @@ function showDashboard(result){
     </div>
 
     <div style="margin-top:20px;padding:20px;background:#0f172a;border-radius:10px;">
-      <h3>Overall Interview Feedback</h3>
-      <p>${result.overall_feedback}</p>
-    </div>
-
-    <div style="margin-top:20px;padding:20px;background:#0f172a;border-radius:10px;">
-      <h3>Role-Specific Feedback</h3>
-      <p>${roleImprovement || result.role_feedback}</p>
+      <h3>Role Improvement Suggestions</h3>
+      <p>${roleImprovement}</p>
     </div>
   `;
 }
